@@ -127,9 +127,10 @@ void ButterflyDemo::CreateRenderStates()
 
 	m_dssStencilTest = m_device.CreateDepthStencilState(dssDesc);
 
-	RasterizerDescription rsDesc;
-	//TODO : 1.13. Setup rasterizer state with ccw front faces
 
+	//TODO : 1.13. Setup rasterizer state with ccw front faces
+	RasterizerDescription rsDesc;
+	rsDesc.FrontCounterClockwise = true;
 	m_rsCCW = m_device.CreateRasterizerState(rsDesc);
 
 	BlendDescription bsDesc;
@@ -149,43 +150,31 @@ void ButterflyDemo::CreateDodecahadronMtx()
 	float R = DODECAHEDRON_R;
 	float H = DODECAHEDRON_H;
 	float A = DODECAHEDRON_A;
-	XMMATRIX matrix_0 = DirectX::XMMatrixRotationX(XM_PIDIV2) * DirectX::XMMatrixTranslation(0.0f, -H / 2, 0.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[0], matrix_0);
+	XMMATRIX matrx_dod[12];
+	matrx_dod[0] = DirectX::XMMatrixRotationX(XM_PIDIV2) * DirectX::XMMatrixTranslation(0.0f, -H / 2, 0.0f);;
+	matrx_dod[1] = DirectX::XMMatrixRotationX(-XM_PIDIV2) * DirectX::XMMatrixTranslation(R, 0.0f, 0.0f) * DirectX::XMMatrixRotationZ(A) * DirectX::XMMatrixTranslation(-R, -H / 2.0f, 0.0f);
+	matrx_dod[2] = matrx_dod[1] * DirectX::XMMatrixRotationY((2 * XM_PI) / 5.0f);
+	matrx_dod[3] = matrx_dod[1] * DirectX::XMMatrixRotationY((4 * XM_PI) / 5.0f);
+	matrx_dod[4] = matrx_dod[1] * DirectX::XMMatrixRotationY((6 * XM_PI) / 5.0f);
+	matrx_dod[5] = matrx_dod[1] * DirectX::XMMatrixRotationY((8 * XM_PI) / 5.0f);
+	matrx_dod[6] = matrx_dod[0] * DirectX::XMMatrixRotationZ(XM_PI);
+	matrx_dod[7] = matrx_dod[1] * DirectX::XMMatrixRotationZ(XM_PI);
+	matrx_dod[8] = matrx_dod[2] * DirectX::XMMatrixRotationZ(XM_PI);
+	matrx_dod[9] = matrx_dod[3] * DirectX::XMMatrixRotationZ(XM_PI);
+	matrx_dod[10] = matrx_dod[4] * DirectX::XMMatrixRotationZ(XM_PI);
+	matrx_dod[11] = matrx_dod[5] * DirectX::XMMatrixRotationZ(XM_PI);
 
-	XMMATRIX matrix_1 = DirectX::XMMatrixRotationX(-XM_PIDIV2) * DirectX::XMMatrixTranslation(R, 0.0f, 0.0f) * DirectX::XMMatrixRotationZ(A) * DirectX::XMMatrixTranslation(-R, -H / 2.0f, 0.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[1], matrix_1);
-
-	XMMATRIX matrix_2 = matrix_1 * DirectX::XMMatrixRotationY((2 * XM_PI) / 5.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[2], matrix_2);
-
-	XMMATRIX matrix_3 = matrix_1 * DirectX::XMMatrixRotationY((4 * XM_PI) / 5.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[3], matrix_3);
-
-	XMMATRIX matrix_4 = matrix_1 * DirectX::XMMatrixRotationY((6 * XM_PI) / 5.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[4], matrix_4);
-
-	XMMATRIX matrix_5 = matrix_1 * DirectX::XMMatrixRotationY((8 * XM_PI) / 5.0f);
-	XMStoreFloat4x4(&m_dodecahedronMtx[5], matrix_5);
-
-	XMMATRIX matrix_6 = matrix_0 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[6], matrix_6);
-
-	XMMATRIX matrix_7 = matrix_1 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[7], matrix_7);
-
-	XMMATRIX matrix_8 = matrix_2 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[8], matrix_8);
-
-	XMMATRIX matrix_9 = matrix_3 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[9], matrix_9);
-
-	XMMATRIX matrix_10 = matrix_4 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[10], matrix_10);
-
-	XMMATRIX matrix_11 = matrix_5 * DirectX::XMMatrixRotationZ(XM_PI);
-	XMStoreFloat4x4(&m_dodecahedronMtx[11], matrix_11);
+	for (int i = 0; i < 12; i++)
+	{
+		XMStoreFloat4x4(&m_dodecahedronMtx[i], matrx_dod[i]);
+	}
 
 	//TODO : 1.12. calculate m_mirrorMtx matrices
+	for (int i = 0; i < 12; i++)
+	{
+		XMMATRIX matrix_mirror = DirectX::XMMatrixInverse(nullptr, matrx_dod[i]) * DirectX::XMMatrixScaling(1.0f, 1.0f, -1.0f) * matrx_dod[i];
+		XMStoreFloat4x4(&m_mirrorMtx[i], matrix_mirror);
+	}
 }
 
 XMFLOAT3 ButterflyDemo::MoebiusStripPos(float t, float s)
@@ -428,13 +417,16 @@ void ButterflyDemo::DrawDodecahedron(bool colors)
 
 		DirectX::XMFLOAT4 color_normalized = DirectX::XMFLOAT4(_colors[i].x / max, _colors[i].y / max, _colors[i].z / max, 1.0f);
 
+		//TODO : 1.14. Modify function so if colors parameter is set to false, all faces are drawn white instead
+		if (!colors)
+		{
+			color_normalized = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		}
+
 		UpdateBuffer(m_cbWorld, m_dodecahedronMtx[i]);
 		UpdateBuffer(m_cbSurfaceColor, color_normalized);
 		m_pentagon.Render(m_device.context());
 	}
-
-	//TODO : 1.14. Modify function so if colors parameter is set to false, all faces are drawn white instead
-
 }
 
 void ButterflyDemo::DrawMoebiusStrip()
@@ -477,8 +469,17 @@ void ButterflyDemo::DrawMirroredWorld(unsigned int i)
 	//TODO : 1.24. Setup depth stencil state for rendering mirrored world
 
 	//TODO : 1.15. Setup rasterizer state and view matrix for rendering the mirrored world
+	//m_rsCCW = 
+	XMMATRIX viewMatrix = m_camera.getViewMatrix();
+	XMFLOAT4X4 morrorViewMatrix;
+	XMStoreFloat4x4(&morrorViewMatrix, XMMatrixMultiply(XMLoadFloat4x4(&m_mirrorMtx[i]), viewMatrix));
+	UpdateCameraCB(morrorViewMatrix);
+	m_device.context()->RSSetState(m_rsCCW.get());
 
 	//TODO : 1.16. Draw 3D objects of the mirrored scene - dodecahedron should be drawn with only one light and no colors and without blending
+	Set1Light();
+	DrawDodecahedron(false);
+	
 
 	//TODO : 1.17. Restore rasterizer state to it's original value
 
