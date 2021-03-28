@@ -62,7 +62,7 @@ namespace mini
 		static Mesh ColoredBox(const DxDevice& device, float width, float height, float depth) { return SimpleTriMesh(device, ColoredBoxVerts(width, height, depth), BoxIdxs()); }
 		static Mesh ColoredBox(const DxDevice& device, float side = 1.0f) { return ColoredBox(device, side, side, side); }
 		static Mesh ShadedBox(const DxDevice& device, float width, float height, float depth) { return SimpleTriMesh(device, ShadedBoxVerts(width, height, depth), BoxIdxs()); }
-		static Mesh ShadedBox(const DxDevice& device, float side = 1.0f) { return ShadedBox(device, side, side, side); }
+		static Mesh ShadedBox(const DxDevice& device, float side = 0.5f) { return ShadedBox(device, side, side, side); }
 
 		//Pentagon Mesh Creation
 

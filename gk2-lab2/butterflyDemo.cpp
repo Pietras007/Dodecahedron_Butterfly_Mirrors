@@ -10,18 +10,20 @@ using namespace std;
 const float MOEBIUS_R = 1.0f;
 const float MOEBIUS_W = 0.1f;
 
+int centerElementsScale = 2;
+
 const float ButterflyDemo::DODECAHEDRON_R = sqrtf(0.375f + 0.125f * sqrtf(5.0f));
 const float ButterflyDemo::DODECAHEDRON_H = 1.0f + 2.0f * DODECAHEDRON_R;
 const float ButterflyDemo::DODECAHEDRON_A = XMScalarACos(-0.2f * sqrtf(5.0f));
 
-const float ButterflyDemo::MOEBIUS_R = 1.0f;
-const float ButterflyDemo::MOEBIUS_W = 0.1f;
+const float ButterflyDemo::MOEBIUS_R = 1.0f / centerElementsScale;
+const float ButterflyDemo::MOEBIUS_W = 0.1f / centerElementsScale;
 const unsigned int ButterflyDemo::MOEBIUS_N = 128;
 
 const float ButterflyDemo::LAP_TIME = 10.0f;
 const float ButterflyDemo::FLAP_TIME = 2.0f;
-const float ButterflyDemo::WING_W = 0.15f;
-const float ButterflyDemo::WING_H = 0.1f;
+const float ButterflyDemo::WING_W = 0.15f / centerElementsScale;
+const float ButterflyDemo::WING_H = 0.1f / centerElementsScale;
 const float ButterflyDemo::WING_MAX_A = 8.0f * XM_PIDIV2 / 9.0f; //80 degrees
 
 const unsigned int ButterflyDemo::BS_MASK = 0xffffffff;
@@ -116,7 +118,11 @@ void ButterflyDemo::CreateRenderStates()
 	m_dssNoDepthWrite = m_device.CreateDepthStencilState(dssDesc); // depth stencil state for billboards
 
 	//TODO : 1.20. Setup depth stencil state for writing to stencil buffer
-
+	dssDesc.DepthEnable = false;
+	dssDesc.StencilEnable = true;
+	//dssDesc.BackFace.StencilFunc = D3D11_COMPARISON_NEVER;
+	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
 	m_dssStencilWrite = m_device.CreateDepthStencilState(dssDesc);
 
 	//TODO : 1.36. Setup depth stencil state for stencil test for billboards
@@ -124,22 +130,32 @@ void ButterflyDemo::CreateRenderStates()
 	m_dssStencilTestNoDepthWrite = m_device.CreateDepthStencilState(dssDesc);
 
 	//TODO : 1.21. Setup depth stencil state for stencil test for 3D objects
-
+	dssDesc.DepthEnable = true;
+	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	m_dssStencilTest = m_device.CreateDepthStencilState(dssDesc);
 
 
 	//TODO : 1.13. Setup rasterizer state with ccw front faces
+	RasterizerDescription rsDescNorm;
+	m_rsCCWNormal = m_device.CreateRasterizerState(rsDescNorm);
 	RasterizerDescription rsDesc;
 	rsDesc.FrontCounterClockwise = true;
 	m_rsCCW = m_device.CreateRasterizerState(rsDesc);
 
-	BlendDescription bsDesc;
 	//TODO : 1.26. Setup alpha blending state
-
+	BlendDescription bsDesc;
+	bsDesc.RenderTarget[0].BlendEnable = true;
+	bsDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	bsDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	bsDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 	m_bsAlpha = m_device.CreateBlendState(bsDesc);
 
 	//TODO : 1.30. Setup additive blending state
-
+	bsDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	bsDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	bsDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 	m_bsAdd = m_device.CreateBlendState(bsDesc);
 }
 
@@ -181,8 +197,8 @@ XMFLOAT3 ButterflyDemo::MoebiusStripPos(float t, float s)
 //TODO : 1.04. Compute the position of point on the Moebius strip for parameters t and s
 {
 	XMFLOAT3 point = {
-		(float)(cos(t) * (MOEBIUS_R + MOEBIUS_W * s * cos(0.5 * t))),
-		(float)(sin(t) * (MOEBIUS_R + MOEBIUS_W * s * cos(0.5 * t))),
+		(float)(cos(t) * (MOEBIUS_R + (double)MOEBIUS_W * s * cos(0.5 * t))),
+		(float)(sin(t) * (MOEBIUS_R + (double)MOEBIUS_W * s * cos(0.5 * t))),
 		(float)(MOEBIUS_W * s * sin(0.5 * t))
 	};
 
@@ -325,10 +341,10 @@ void ButterflyDemo::UpdateButterfly(float dtime)
 		VN.position.x, VN.position.y, VN.position.z, 1.0f,
 	};
 
-	XMMATRIX m_wingMtx_0 = DirectX::XMMatrixTranslation(1.0f, 0.0f, 0.0f) * DirectX::XMMatrixRotationY(XM_PIDIV2) * DirectX::XMMatrixScaling(1.0f, WING_W / 2.0f, WING_H / 2.0f) * DirectX::XMMatrixRotationY(a) * matrix;
+	XMMATRIX m_wingMtx_0 = DirectX::XMMatrixTranslation(1.0f, 0.0f, 0.0f) * DirectX::XMMatrixRotationY(XM_PIDIV2) * DirectX::XMMatrixScaling(1.0f, WING_W / 2.0f, WING_H / 2.0f) * DirectX::XMMatrixRotationY(a) * matrix * XMMatrixRotationX(XM_PIDIV2);
 	XMStoreFloat4x4(&m_wingMtx[0], m_wingMtx_0);
 
-	XMMATRIX m_wingMtx_1 = DirectX::XMMatrixTranslation(1.0f, 0.0f, 0.0f) * DirectX::XMMatrixRotationY(XM_PIDIV2) * DirectX::XMMatrixScaling(1.0f, WING_W / 2.0f, WING_H / 2.0f) * DirectX::XMMatrixRotationY(-a) * matrix;
+	XMMATRIX m_wingMtx_1 = DirectX::XMMatrixTranslation(1.0f, 0.0f, 0.0f) * DirectX::XMMatrixRotationY(XM_PIDIV2) * DirectX::XMMatrixScaling(1.0f, WING_W / 2.0f, WING_H / 2.0f) * DirectX::XMMatrixRotationY(-a) * matrix * XMMatrixRotationX(XM_PIDIV2);
 	XMStoreFloat4x4(&m_wingMtx[1], m_wingMtx_1);
 
 }
@@ -374,13 +390,13 @@ void ButterflyDemo::Set3Lights()
 		/*.surface = */ XMFLOAT4(0.2f, 0.8f, 0.8f, 200.0f),
 		/*.lights =*/{
 			{ /*.position =*/ m_camera.getCameraPosition(), /*.color =*/ XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-			//Write the rest of the code here
-
+			{ /*.position =*/ XMFLOAT4(1.0f,1.0f, 1.0f, 1.0f), /*.color =*/ XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+			{ /*.position =*/ XMFLOAT4(-1.0f,-1.0f, -1.0f, 1.0f), /*.color =*/ XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
 		}
 	};
 
 	//comment the following line when structure is filled
-	ZeroMemory(&l.lights[1], sizeof(Light) * 2);
+	//ZeroMemory(&l.lights[1], sizeof(Light) * 2);
 
 	UpdateBuffer(m_cbLighting, l);
 }
@@ -415,7 +431,7 @@ void ButterflyDemo::DrawDodecahedron(bool colors)
 		if (_colors[i].z > max)
 			max = _colors[i].z;
 
-		DirectX::XMFLOAT4 color_normalized = DirectX::XMFLOAT4(_colors[i].x / max, _colors[i].y / max, _colors[i].z / max, 1.0f);
+		DirectX::XMFLOAT4 color_normalized = DirectX::XMFLOAT4(_colors[i].x / max, _colors[i].y / max, _colors[i].z / max, 0.3f);
 
 		//TODO : 1.14. Modify function so if colors parameter is set to false, all faces are drawn white instead
 		if (!colors)
@@ -433,7 +449,7 @@ void ButterflyDemo::DrawMoebiusStrip()
 //TODO : 1.08. Draw the Moebius strip mesh
 {
 	XMFLOAT4X4 worldMtx;
-	XMStoreFloat4x4(&worldMtx, XMMatrixIdentity());
+	XMStoreFloat4x4(&worldMtx, XMMatrixIdentity() * XMMatrixRotationX(XM_PIDIV2));
 	UpdateBuffer(m_cbWorld, worldMtx);
 	m_moebius.Render(m_device.context());
 }
@@ -463,13 +479,16 @@ void ButterflyDemo::DrawMirroredWorld(unsigned int i)
 //Draw the mirrored scene reflected in the i-th dodecahedron face
 {
 	//TODO : 1.22. Setup render state for writing to the stencil buffer
+	m_device.context()->OMSetDepthStencilState(m_dssStencilWrite.get(), i + 1);
 
 	//TODO : 1.23. Draw the i-th face
+	UpdateBuffer(m_cbWorld, m_dodecahedronMtx[i]);
+	m_pentagon.Render(m_device.context());
 
 	//TODO : 1.24. Setup depth stencil state for rendering mirrored world
+	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), i + 1);
 
 	//TODO : 1.15. Setup rasterizer state and view matrix for rendering the mirrored world
-	//m_rsCCW = 
 	XMMATRIX viewMatrix = m_camera.getViewMatrix();
 	XMFLOAT4X4 morrorViewMatrix;
 	XMStoreFloat4x4(&morrorViewMatrix, XMMatrixMultiply(XMLoadFloat4x4(&m_mirrorMtx[i]), viewMatrix));
@@ -479,17 +498,26 @@ void ButterflyDemo::DrawMirroredWorld(unsigned int i)
 	//TODO : 1.16. Draw 3D objects of the mirrored scene - dodecahedron should be drawn with only one light and no colors and without blending
 	Set1Light();
 	DrawDodecahedron(false);
-	
+	Set3Lights();
+	DrawBox();
+	DrawMoebiusStrip();
+	DrawButterfly();
+
 
 	//TODO : 1.17. Restore rasterizer state to it's original value
+	m_device.context()->RSSetState(m_rsCCWNormal.get());
 
 	//TODO : 1.37. Setup depth stencil state for rendering mirrored billboards
 
 	//TODO : 1.38. Draw mirrored billboards - they need to be drawn after restoring rasterizer state, but with mirrored view matrix
 
 	//TODO : 1.18. Restore view matrix to its original value
+	XMFLOAT4X4 viewMatrixFloat;
+	XMStoreFloat4x4(&viewMatrixFloat, viewMatrix);
+	UpdateCameraCB(viewMatrixFloat);
 
 	//TODO : 1.25. Restore depth stencil state to it's original value
+	m_device.context()->OMSetDepthStencilState(nullptr, 0);
 }
 
 void ButterflyDemo::Render()

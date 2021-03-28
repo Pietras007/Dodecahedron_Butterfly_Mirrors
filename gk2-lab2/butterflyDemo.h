@@ -124,6 +124,7 @@ namespace mini::gk2
 		dx_ptr<ID3D11DepthStencilState> m_dssStencilTestNoDepthWrite;
 		//Rasterizer state used to define front faces as counter-clockwise, used when drawing mirrored scene
 		dx_ptr<ID3D11RasterizerState> m_rsCCW;
+		dx_ptr<ID3D11RasterizerState> m_rsCCWNormal;
 		//Blend state used to draw dodecahedron faced with alpha blending.
 		dx_ptr<ID3D11BlendState> m_bsAlpha;
 		//Blend state used to draw billboards.
