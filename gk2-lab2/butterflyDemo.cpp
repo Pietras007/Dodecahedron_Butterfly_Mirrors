@@ -10,7 +10,7 @@ using namespace std;
 const float MOEBIUS_R = 1.0f;
 const float MOEBIUS_W = 0.1f;
 
-int centerElementsScale = 2;
+int centerElementsScale = 1;
 
 const float ButterflyDemo::DODECAHEDRON_R = sqrtf(0.375f + 0.125f * sqrtf(5.0f));
 const float ButterflyDemo::DODECAHEDRON_H = 1.0f + 2.0f * DODECAHEDRON_R;
@@ -126,7 +126,8 @@ void ButterflyDemo::CreateRenderStates()
 	m_dssStencilWrite = m_device.CreateDepthStencilState(dssDesc);
 
 	//TODO : 1.36. Setup depth stencil state for stencil test for billboards
-
+	dssDesc.BackFace.StencilFunc = D3D11_COMPARISON_NEVER;
+	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
 	m_dssStencilTestNoDepthWrite = m_device.CreateDepthStencilState(dssDesc);
 
 	//TODO : 1.21. Setup depth stencil state for stencil test for 3D objects
@@ -166,9 +167,10 @@ void ButterflyDemo::CreateDodecahadronMtx()
 	float R = DODECAHEDRON_R;
 	float H = DODECAHEDRON_H;
 	float A = DODECAHEDRON_A;
+	float dodScale = 2.5f;
 	XMMATRIX matrx_dod[12];
-	matrx_dod[0] = DirectX::XMMatrixRotationX(XM_PIDIV2) * DirectX::XMMatrixTranslation(0.0f, -H / 2, 0.0f);;
-	matrx_dod[1] = DirectX::XMMatrixRotationX(-XM_PIDIV2) * DirectX::XMMatrixTranslation(R, 0.0f, 0.0f) * DirectX::XMMatrixRotationZ(A) * DirectX::XMMatrixTranslation(-R, -H / 2.0f, 0.0f);
+	matrx_dod[0] = DirectX::XMMatrixRotationX(XM_PIDIV2) * DirectX::XMMatrixTranslation(0.0f, -H / 2, 0.0f) * DirectX::XMMatrixScaling(dodScale, dodScale, dodScale);
+	matrx_dod[1] = DirectX::XMMatrixRotationX(-XM_PIDIV2) * DirectX::XMMatrixTranslation(R, 0.0f, 0.0f) * DirectX::XMMatrixRotationZ(A) * DirectX::XMMatrixTranslation(-R, -H / 2.0f, 0.0f) * DirectX::XMMatrixScaling(dodScale, dodScale, dodScale);
 	matrx_dod[2] = matrx_dod[1] * DirectX::XMMatrixRotationY((2 * XM_PI) / 5.0f);
 	matrx_dod[3] = matrx_dod[1] * DirectX::XMMatrixRotationY((4 * XM_PI) / 5.0f);
 	matrx_dod[4] = matrx_dod[1] * DirectX::XMMatrixRotationY((6 * XM_PI) / 5.0f);
@@ -390,8 +392,8 @@ void ButterflyDemo::Set3Lights()
 		/*.surface = */ XMFLOAT4(0.2f, 0.8f, 0.8f, 200.0f),
 		/*.lights =*/{
 			{ /*.position =*/ m_camera.getCameraPosition(), /*.color =*/ XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-			{ /*.position =*/ XMFLOAT4(1.0f,1.0f, 1.0f, 1.0f), /*.color =*/ XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-			{ /*.position =*/ XMFLOAT4(-1.0f,-1.0f, -1.0f, 1.0f), /*.color =*/ XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+			{ /*.position =*/ GREEN_LIGHT_POS, /*.color =*/ XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+			{ /*.position =*/ BLUE_LIGHT_POS, /*.color =*/ XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
 		}
 	};
 
@@ -468,11 +470,22 @@ void ButterflyDemo::DrawBillboards()
 //Setup billboards rendering and draw them
 {
 	//TODO : 1.33. Setup shaders and blend state
+	SetBillboardShaders();
+	m_device.context()->OMSetBlendState(m_bsAdd.get(), nullptr, BS_MASK);
 
 	//TODO : 1.34. Draw both billboards with appropriate colors and transformations
+	UpdateBuffer(m_cbSurfaceColor, XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
+	UpdateBuffer(m_cbWorld, XMMatrixTranslation(1.0f, 1.0f, 1.0f));
+	m_bilboard.Render(m_device.context());
+
+	UpdateBuffer(m_cbSurfaceColor, XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f));
+	UpdateBuffer(m_cbWorld, XMMatrixTranslation(-1.0f, -1.0f, -1.0f));
+	m_bilboard.Render(m_device.context());
 
 	//TODO : 1.35. Restore rendering state to it's original values
-
+	UpdateBuffer(m_cbSurfaceColor, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	SetShaders();
+	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
 }
 
 void ButterflyDemo::DrawMirroredWorld(unsigned int i)
@@ -508,9 +521,9 @@ void ButterflyDemo::DrawMirroredWorld(unsigned int i)
 	m_device.context()->RSSetState(m_rsCCWNormal.get());
 
 	//TODO : 1.37. Setup depth stencil state for rendering mirrored billboards
-
+	m_device.context()->OMSetDepthStencilState(m_dssStencilTestNoDepthWrite.get(), i + 1);
 	//TODO : 1.38. Draw mirrored billboards - they need to be drawn after restoring rasterizer state, but with mirrored view matrix
-
+	DrawBillboards();
 	//TODO : 1.18. Restore view matrix to its original value
 	XMFLOAT4X4 viewMatrixFloat;
 	XMStoreFloat4x4(&viewMatrixFloat, viewMatrix);

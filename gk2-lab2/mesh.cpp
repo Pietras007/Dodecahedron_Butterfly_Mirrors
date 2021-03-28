@@ -184,7 +184,7 @@ std::vector<unsigned short> mini::Mesh::PentagonIdxs()
 std::vector<VertexPositionNormal> mini::Mesh::DoubleRectVerts(float width, float height)
 //TODO : 1.09. Create vertex list for the butterfly wing
 {
-	return { 
+	return {
 		{ { -0.5f * width, -0.5f * height, 0.0f }, { 0.0f, 0.0f, -1.0f } },
 		{ { +0.5f * width, -0.5f * height, 0.0f }, { 0.0f, 0.0f, -1.0f } },
 		{ { +0.5f * width, +0.5f * height, 0.0f }, { 0.0f, 0.0f, -1.0f } },
@@ -210,7 +210,7 @@ std::vector<VertexPositionNormal> mini::Mesh::DoubleRectVerts(float width, float
 std::vector<unsigned short> mini::Mesh::DoubleRectIdxs()
 //TODO : 1.09. Create index list for the butterfly wing
 {
-	return { 
+	return {
 		 0, 2, 1,  0, 3, 2,
 		 4, 5, 6,  4, 6, 7,
 	};
@@ -219,11 +219,31 @@ std::vector<unsigned short> mini::Mesh::DoubleRectIdxs()
 std::vector<DirectX::XMFLOAT3> mini::Mesh::BillboardVerts(float width, float height)
 //TODO : 1.29. Initialize vertex and index list for billboards
 {
-	return { };
+	return {
+
+		{ -0.5f * width, -0.5f * height, 0.0f },
+		{ +0.5f * width, -0.5f * height, 0.0f },
+		{ +0.5f * width, +0.5f * height, 0.0f },
+		{ -0.5f * width, +0.5f * height, 0.0f },
+
+		/*{0.5f, 0.5f, 0.5f},
+		{1.5f, 1.5f, 0.5f},
+		{1.5f, 0.5f, 0.5f},
+		{0.5f, 1.5f, 0.5f},
+
+		{-1.5f, -1.5f, -0.5f},
+		{-1.5f, -0.5f, -0.5f},
+		{-0.5f, -0.5f, -0.5f},
+		{-0.5f, -1.5f, -0.5f},*/
+	};
 }
 
 std::vector<unsigned short> mini::Mesh::BillboardIdx()
 //TODO : 1.29. Initialize vertex and index list for billboards
 {
-	return { };
+	return {
+		0, 2, 1,  0, 3, 2,
+		//0,1,2,	0,3,1,
+		//4,5,6,  4,6,7
+	};
 }

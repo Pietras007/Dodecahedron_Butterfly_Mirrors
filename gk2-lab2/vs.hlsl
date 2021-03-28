@@ -39,7 +39,6 @@ PSInput main(VSInput i)
 	o.worldPos = worldPosition;
 
 	float4 pos = mul(viewMatrix, float4(worldPosition, 1.0f));
-	//pos = mul(viewMatrix, pos);
 	o.pos = mul(projMatrix, pos);
 
 	//TODO : 0.7. Calculate output normal and view vectors in global coordinates frame

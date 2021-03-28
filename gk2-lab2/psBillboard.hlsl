@@ -12,6 +12,13 @@ struct PSInput
 float4 main(PSInput i) : SV_TARGET
 {
 	//TODO : 1.32. Calculate billboard pixel color
-	
-	return float4(0.0f, 0.0f, 0.0f, 1.0f); //Replace with correct implementation
+	float billboardSize = 0.3f;
+	if (i.tex.x * i.tex.x + i.tex.y * i.tex.y < billboardSize * billboardSize)
+	{
+		float dist = billboardSize * billboardSize - (i.tex.x * i.tex.x + i.tex.y * i.tex.y);
+		dist = dist / (billboardSize * billboardSize);
+		return surfaceColor * dist;
+	}
+
+	return float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
